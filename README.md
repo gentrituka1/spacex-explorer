@@ -190,7 +190,3 @@ src/
 - [ ] Stats aggregation may require multiple paginated API calls for full history; very large datasets could be slow.
 - [ ] SpaceX API has no official rate-limit docs; retry/backoff is defensive only.
 - [ ] Optional `/payloads/:id` and `/cores/:id` endpoints unused — embedded launch fields are sufficient for current UI.
-
-## License
-
-MIT (or your chosen license).
