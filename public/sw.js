@@ -1,7 +1,6 @@
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const API_CACHE = `spacex-api-${CACHE_VERSION}`;
 const APP_CACHE = `spacex-app-${CACHE_VERSION}`;
-const API_ORIGIN = "https://api.spacexdata.com";
 const MAX_API_ENTRIES = 120;
 
 self.addEventListener("install", (event) => {
@@ -115,7 +114,7 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  if (url.origin === API_ORIGIN) {
+  if (url.pathname.startsWith("/api/ll2") && request.method === "GET") {
     event.respondWith(staleWhileRevalidateApi(request));
     return;
   }

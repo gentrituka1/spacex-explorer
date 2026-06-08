@@ -1,4 +1,6 @@
-const API_BASE = "https://api.spacexdata.com/v4";
+const LL2_UPSTREAM =
+  process.env.LL2_API_BASE ?? "https://ll.thespacedevs.com/2.3.0";
+const CLIENT_PROXY_BASE = "/api/ll2";
 
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 500;
@@ -24,11 +26,23 @@ function isRetryableStatus(status: number): boolean {
 
 async function parseErrorMessage(response: Response): Promise<string> {
   try {
-    const body = (await response.json()) as { message?: string };
-    return body.message ?? response.statusText;
+    const body = (await response.json()) as { message?: string; detail?: string };
+    return body.message ?? body.detail ?? response.statusText;
   } catch {
     return response.statusText;
   }
+}
+
+function getApiBase(): string {
+  if (typeof window === "undefined") {
+    return LL2_UPSTREAM;
+  }
+  return CLIENT_PROXY_BASE;
+}
+
+function resolveUrl(path: string): string {
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  return `${getApiBase()}${normalized}`;
 }
 
 export async function apiFetch<T>(
@@ -36,13 +50,13 @@ export async function apiFetch<T>(
   init?: RequestInit,
   attempt = 0,
 ): Promise<T> {
-  const url = `${API_BASE}${path}`;
+  const url = resolveUrl(path);
 
   try {
     const response = await fetch(url, {
       ...init,
       headers: {
-        "Content-Type": "application/json",
+        Accept: "application/json",
         ...init?.headers,
       },
     });

@@ -1,6 +1,6 @@
 # SpaceX Explorer
 
-A frontend SpaceX mission explorer built with **Next.js (App Router)**, **React**, **TypeScript**, and the public [SpaceX API v4](https://api.spacexdata.com/v4). The app focuses on polished UX, server-side querying, caching, virtualization, accessibility, and strong typing.
+A frontend SpaceX mission explorer built with **Next.js (App Router)**, **React**, **TypeScript**, and the [Launch Library 2 API](https://thespacedevs.com/llapi) (SpaceX data). The original [SpaceX API v4](https://github.com/r-spacex/SpaceX-API) is archived and no longer updated; this app uses LL2 via a cached Next.js proxy.
 
 ## How to run
 
@@ -31,7 +31,7 @@ Requires **Node.js 18+**.
 |-------------|--------|
 | Next.js + TypeScript (App Router) | Done |
 | Strong TypeScript types (no `any` in core logic) | Done |
-| `POST /launches/query` — server-side pagination, filter, sort | Done |
+| `POST /launches/query` — server-side pagination, filter, sort | Done (via LL2 GET + query params, same UX) |
 | Filters: upcoming/past, success/failure, date range | Done |
 | Sort by date / name | Done |
 | Search by mission name | Done (+ flight number: `142`, `#142`, `flight 142`) |
@@ -54,7 +54,7 @@ Requires **Node.js 18+**.
 | Charts (launches per year / success rate) | Done — Recharts + custom chart builder on `/stats` |
 | Compare two launches side-by-side | Done — `/compare` with diff highlighting |
 | Shareable compare URL | Done — `?ids=<id1>,<id2>` synced to selection |
-| Offline / service worker for favorites + cached lists | Done — `public/sw.js` caches SpaceX API + app shell; favorites in Zustand/`localStorage` |
+| Offline / service worker for favorites + cached lists | Done — `public/sw.js` caches `/api/ll2` + app shell; favorites in Zustand/`localStorage` |
 | SSR/SSG for list or detail with hydration | Done — ISR + React Query dehydration on `/launches` (5m) and `/launches/[id]` (1h) |
 | Optional `GET /payloads/:id`, `GET /cores/:id` | Not used — payload/core data comes from the launch document embedded fields |
 
@@ -102,22 +102,28 @@ Requires **Node.js 18+**.
 
 ## SpaceX API usage
 
-Base URL: `https://api.spacexdata.com/v4`
+**Data source:** [Launch Library 2 (LL2)](https://ll.thespacedevs.com/2.3.0/) — filtered to SpaceX (`lsp__name=SpaceX`). The legacy `api.spacexdata.com` API was archived by its maintainer and is read-only/stale; LL2 is the community-recommended successor with ongoing updates.
+
+**Proxy:** Browser requests go through `/api/ll2/*` (Next.js route handler with 5-minute ISR cache) to reduce rate-limit pressure. Server-side prefetch calls LL2 directly.
 
 | Endpoint | Usage |
 |----------|--------|
-| `POST /launches/query` | Paginated list, stats aggregation, compare picker — **never** fetch-all-then-filter client-side |
-| `GET /launches/:id` | Launch detail |
-| `GET /rockets/:id` | Rocket specs on detail + compare |
-| `GET /launchpads/:id` | Pad info on detail + compare |
-| `GET /rockets`, `GET /launchpads` | Lookup maps for stats charts |
+| `GET /launches/` (+ `/upcoming/`, `/previous/`) | Paginated SpaceX launch list with filters |
+| `GET /launches/:id/` | Launch detail (`mode=detailed`) |
+| `GET /launcher_configurations/:id/` | Rocket specs on detail + compare |
+| `GET /pads/:id/` | Pad info on detail + compare |
+| `GET /launcher_configurations/`, `GET /pads/` | Lookup maps for stats charts |
 
-Query building lives in `src/lib/launch-query.ts`:
+Filter building lives in `src/lib/api/ll2/query-params.ts`:
 
-- Mongo-style filters for upcoming, success, date range, and name regex search.
-- Flight-number search maps to `flight_number` equality or name regex.
-- Sort: `date_utc` or `name`, asc/desc.
-- Pagination: `options.limit` + `options.page` via `useInfiniteQuery` (`PAGE_SIZE = 20`).
+- Upcoming/past via dedicated LL2 endpoints; success via `status__ids`.
+- Date range on `net__gte` / `net__lte`; search via `search` or `agency_launch_attempt_count`.
+- Sort: `ordering=-net` or `-name`.
+- Pagination: `limit` + `offset` mapped to the app's page model.
+
+Response mapping to the app's domain types: `src/lib/api/ll2/mappers.ts`.
+
+Optional env: `LL2_API_BASE` (defaults to `https://ll.thespacedevs.com/2.3.0`). Use `https://lldev.thespacedevs.com/2.3.0` only for local experimentation.
 
 HTTP layer (`src/lib/api/client.ts`): exponential backoff (500ms base, 3 retries) on **429** and **5xx**, plus network failures.
 
@@ -188,5 +194,6 @@ src/
 - [ ] Launch list filters are not reflected in the URL (compare selection is).
 - [ ] Service worker registers only in production builds.
 - [ ] Stats aggregation may require multiple paginated API calls for full history; very large datasets could be slow.
-- [ ] SpaceX API has no official rate-limit docs; retry/backoff is defensive only.
+- [ ] Saved favorites from the old API use MongoDB-style IDs and won't match LL2 UUIDs — re-favorite missions after migration.
+- [ ] LL2 free tier rate limit is 15 requests/hour on the upstream API; the proxy cache mitigates this but heavy stats usage can still hit limits.
 - [ ] Optional `/payloads/:id` and `/cores/:id` endpoints unused — embedded launch fields are sufficient for current UI.

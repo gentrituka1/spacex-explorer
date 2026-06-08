@@ -1,4 +1,14 @@
-import { buildLaunchQuery, buildLaunchSort } from "@/lib/launch-query";
+import {
+  buildLl2SearchParams,
+  buildLl2StatsParams,
+  getLl2LaunchesPath,
+} from "@/lib/api/ll2/query-params";
+import {
+  mapLl2LaunchToLaunch,
+  mapLl2LaunchToStatsLaunch,
+  mapLl2PaginatedLaunches,
+} from "@/lib/api/ll2/mappers";
+import type { Ll2Launch, Ll2Paginated } from "@/lib/api/ll2/types";
 import type {
   Launch,
   LaunchQueryOptions,
@@ -8,6 +18,7 @@ import type {
 import { apiFetch } from "./client";
 
 const PAGE_SIZE = 20;
+const STATS_PAGE_SIZE = 100;
 
 export function getPageSize(): number {
   return PAGE_SIZE;
@@ -17,22 +28,19 @@ export async function queryLaunches(
   options: LaunchQueryOptions,
 ): Promise<PaginatedResponse<Launch>> {
   const { page, limit, filters } = options;
+  const path = getLl2LaunchesPath(filters);
+  const params = buildLl2SearchParams(filters, page, limit);
 
-  return apiFetch<PaginatedResponse<Launch>>("/launches/query", {
-    method: "POST",
-    body: JSON.stringify({
-      query: buildLaunchQuery(filters),
-      options: {
-        page,
-        limit,
-        sort: buildLaunchSort(filters),
-      },
-    }),
-  });
+  const response = await apiFetch<Ll2Paginated<Ll2Launch>>(
+    `${path}/?${params.toString()}`,
+  );
+
+  return mapLl2PaginatedLaunches(response, page, limit);
 }
 
 export async function getLaunch(id: string): Promise<Launch> {
-  return apiFetch<Launch>(`/launches/${id}`);
+  const response = await apiFetch<Ll2Launch>(`/launches/${id}/?mode=detailed`);
+  return mapLl2LaunchToLaunch(response);
 }
 
 export async function queryLaunchStats(): Promise<StatsLaunch[]> {
@@ -41,40 +49,15 @@ export async function queryLaunchStats(): Promise<StatsLaunch[]> {
   let hasNextPage = true;
 
   while (hasNextPage) {
-    const response = await apiFetch<PaginatedResponse<Launch>>(
-      "/launches/query",
-      {
-        method: "POST",
-        body: JSON.stringify({
-          query: {},
-          options: {
-            page,
-            limit: 100,
-            sort: { date_utc: 1 },
-            select: {
-              date_utc: 1,
-              success: 1,
-              upcoming: 1,
-              rocket: 1,
-              launchpad: 1,
-            },
-          },
-        }),
-      },
+    const params = buildLl2StatsParams(page, STATS_PAGE_SIZE);
+    const response = await apiFetch<Ll2Paginated<Ll2Launch>>(
+      `/launches/?${params.toString()}`,
     );
 
-    allDocs.push(
-      ...response.docs.map((launch) => ({
-        date_utc: launch.date_utc,
-        success: launch.success,
-        upcoming: launch.upcoming,
-        rocket: launch.rocket,
-        launchpad: launch.launchpad,
-      })),
-    );
+    allDocs.push(...response.results.map(mapLl2LaunchToStatsLaunch));
 
-    hasNextPage = response.hasNextPage;
-    page = response.nextPage ?? page + 1;
+    hasNextPage = Boolean(response.next);
+    page += 1;
   }
 
   return allDocs;

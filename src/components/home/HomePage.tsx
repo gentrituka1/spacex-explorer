@@ -207,10 +207,18 @@ export function HomePage() {
             Explore every SpaceX launch, your way
           </h1>
           <p className="mt-5 text-lg leading-relaxed text-slate-400">
-            SpaceX Explorer pulls live data from the public SpaceX API v4. Browse
-            missions, save favorites, chart launch history, and compare flights
-            side by side — all in a fast, dark-themed dashboard built for space
-            fans and curious users alike.
+            SpaceX Explorer pulls up-to-date SpaceX launch data from{" "}
+            <a
+              href="https://thespacedevs.com/llapi"
+              className="text-sky-400 transition-colors hover:text-sky-300"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Launch Library 2
+            </a>
+            . Browse missions, save favorites, chart launch history, and compare
+            flights side by side — all in a fast, dark-themed dashboard built for
+            space fans and curious users alike.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/launches">
@@ -224,7 +232,7 @@ export function HomePage() {
 
         <dl className="relative z-10 mt-10 grid gap-4 sm:grid-cols-3">
           {[
-            { label: "Data source", value: "SpaceX API v4" },
+            { label: "Data source", value: "Launch Library 2" },
             { label: "Your favorites", value: favorites.length.toString() },
             { label: "Account needed", value: "None" },
           ].map((item) => (
@@ -350,17 +358,27 @@ export function HomePage() {
         <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-6">
           <h2 className="text-xl font-bold text-white">Privacy & storage</h2>
           <p className="mt-3 text-sm leading-relaxed text-slate-400">
-            Launch data is read from the public{" "}
+            Launch data is read from{" "}
             <a
-              href="https://github.com/r-spacex/SpaceX-API"
+              href="https://thespacedevs.com/llapi"
               className="text-sky-400 hover:text-sky-300"
               target="_blank"
               rel="noopener noreferrer"
             >
-              SpaceX API v4
+              Launch Library 2
+            </a>{" "}
+            by{" "}
+            <a
+              href="https://thespacedevs.com/"
+              className="text-sky-400 hover:text-sky-300"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              The Space Devs
             </a>
-            . Favorites and custom stats dashboards are saved only in your
-            browser&apos;s local storage — nothing is sent to a backend server.
+            , filtered to SpaceX missions. Favorites and custom stats dashboards
+            are saved only in your browser&apos;s local storage — nothing is sent
+            to a backend server.
           </p>
           <p className="mt-3 text-sm leading-relaxed text-slate-400">
             Clear your browser data to reset favorites and charts, or use

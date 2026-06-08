@@ -52,14 +52,23 @@ export default function RootLayout({
           </main>
           <footer className="border-t border-slate-800/60 bg-slate-950/50 py-8 text-center backdrop-blur-sm">
             <p className="text-sm text-slate-500">
-              Data from{" "}
+              SpaceX launch data from{" "}
               <a
-                href="https://github.com/r-spacex/SpaceX-API"
+                href="https://thespacedevs.com/llapi"
                 className="text-sky-400 transition-colors hover:text-sky-300"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                SpaceX API v4
+                Launch Library 2
+              </a>
+              {" "}by{" "}
+              <a
+                href="https://thespacedevs.com/"
+                className="text-sky-400 transition-colors hover:text-sky-300"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                The Space Devs
               </a>
             </p>
             <p className="mt-1 text-xs text-slate-600">
